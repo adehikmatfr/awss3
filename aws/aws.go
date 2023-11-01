@@ -11,56 +11,44 @@ type AWS interface {
 }
 
 type Opts struct {
-	Region      string
-	AccessKeyID string
-	SecretKey   string
-	Token       string
-	Endpoint    string
+	Region           string
+	AccessKeyID      string
+	SecretKey        string
+	Token            string
+	Endpoint         string
+	S3ForcePathStyle bool
 }
 
 type Client struct {
-	region      string
-	accessKeyID string
-	secretKey   string
-	token       string
-	endpoint    string
+	region           string
+	accessKeyID      string
+	secretKey        string
+	token            string
+	endpoint         string
+	s3ForcePathStyle bool
 }
 
 func New(o Opts) *Client {
 	return &Client{
-		region:      o.Region,
-		accessKeyID: o.AccessKeyID,
-		secretKey:   o.SecretKey,
-		token:       o.Token,
-		endpoint:    o.Endpoint,
+		region:           o.Region,
+		accessKeyID:      o.AccessKeyID,
+		secretKey:        o.SecretKey,
+		token:            o.Token,
+		endpoint:         o.Endpoint,
+		s3ForcePathStyle: o.S3ForcePathStyle,
 	}
 }
 
 func (a *Client) NewSession() (*session.Session, error) {
-	var (
-		reg, ep *string
-		cred    *credentials.Credentials
-	)
-	if a.region != "" {
-		reg = aws.String(a.region)
-	}
-
-	if a.accessKeyID != "" {
-		cred = credentials.NewStaticCredentials(
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String(a.region),
+		Credentials: credentials.NewStaticCredentials(
 			a.accessKeyID,
 			a.secretKey,
 			a.token,
-		)
-	}
-
-	if a.endpoint != "" {
-		ep = aws.String(a.endpoint)
-	}
-
-	sess, err := session.NewSession(&aws.Config{
-		Region:      reg,
-		Credentials: cred,
-		Endpoint:    ep,
+		),
+		Endpoint:         aws.String(a.endpoint),
+		S3ForcePathStyle: aws.Bool(a.s3ForcePathStyle),
 	})
 
 	if err != nil {

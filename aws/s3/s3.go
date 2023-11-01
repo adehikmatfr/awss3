@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 
+	"path/filepath"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -13,7 +15,7 @@ import (
 type S3 interface {
 	CreateBucket(bucketName string) error
 	ListBuckets() (*s3.ListBucketsOutput, error)
-	UploadFile(ctx context.Context, o *UploadFileOpts) (*s3manager.UploadOutput, error)
+	UploadFile(ctx context.Context, o *UploadFileOpts) (string, error)
 	DownloadFile(bucketName string, key string) (io.Reader, error)
 }
 
@@ -27,9 +29,10 @@ type S3Cilent struct {
 }
 
 type UploadFileOpts struct {
-	BucketName string
-	FileName   string
-	File       io.Reader
+	BucketName         string
+	ContentDisposition string
+	FileName           string
+	File               io.Reader
 }
 
 func NewUploadFileOpts() *UploadFileOpts {
@@ -63,12 +66,21 @@ func (s *S3Cilent) ListBuckets() (*s3.ListBucketsOutput, error) {
 	return res, nil
 }
 
-func (s *S3Cilent) UploadFile(ctx context.Context, o *UploadFileOpts) (*s3manager.UploadOutput, error) {
-	return s.uploader.UploadWithContext(ctx, &s3manager.UploadInput{
-		Bucket: aws.String(o.BucketName),
-		Key:    aws.String(o.FileName),
-		Body:   o.File,
+func (s *S3Cilent) UploadFile(ctx context.Context, o *UploadFileOpts) (string, error) {
+	ct := getContentType(o.FileName)
+	out, err := s.uploader.UploadWithContext(ctx, &s3manager.UploadInput{
+		Bucket:             aws.String(o.BucketName),
+		Key:                aws.String(o.FileName),
+		Body:               o.File,
+		ContentDisposition: aws.String(o.ContentDisposition),
+		ContentType:        aws.String(ct),
 	})
+
+	if err != nil {
+		return "", err
+	}
+
+	return out.Location, nil
 }
 
 func (s *S3Cilent) DownloadFile(bucketName string, key string) (io.Reader, error) {
@@ -84,4 +96,47 @@ func (s *S3Cilent) DownloadFile(bucketName string, key string) (io.Reader, error
 	}
 
 	return result.Body, err
+}
+
+// Utility Func
+func getContentType(filename string) string {
+	extension := filepath.Ext(filename)
+	switch extension {
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".png":
+		return "image/png"
+	case ".gif":
+		return "image/gif"
+	case ".pdf":
+		return "application/pdf"
+	case ".html", ".htm":
+		return "text/html"
+	case ".txt":
+		return "text/plain"
+	case ".css":
+		return "text/css"
+	case ".js":
+		return "application/javascript"
+	case ".json":
+		return "application/json"
+	case ".xml":
+		return "application/xml"
+	case ".csv":
+		return "text/csv"
+	case ".zip":
+		return "application/zip"
+	case ".tar":
+		return "application/x-tar"
+	case ".gz":
+		return "application/gzip"
+	case ".doc", ".docx":
+		return "application/msword"
+	case ".xls", ".xlsx":
+		return "application/vnd.ms-excel"
+	case ".ppt", ".pptx":
+		return "application/vnd.ms-powerpoint"
+	default:
+		return "application/octet-stream"
+	}
 }
