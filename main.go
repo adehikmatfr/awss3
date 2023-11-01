@@ -63,11 +63,11 @@ func exampleDownload(sClient s3.S3) {
 
 func main() {
 	c := aws.New(aws.Opts{
-		AccessKeyID:      "test",
-		SecretKey:        "test",
+		AccessKeyID:      "YOUR_ACCESS_KEY_ID",
+		SecretKey:        "YOUR_SECRET_KEY",
 		Token:            "",
-		Region:           "ap-southeast-1",
-		Endpoint:         "http://103.31.39.7:4566/",
+		Region:           "YOUR_REGION",
+		Endpoint:         "YOUR_ENDPOINT",
 		S3ForcePathStyle: true,
 	})
 
